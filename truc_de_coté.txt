@@ -1,0 +1,19 @@
+| 200 | ERR_ALREADYCONNECTED | The client is already connected |
+| 201 | ERR_NOTCONNECTED | The client is not connected |
+| 202 | ERR_PSEUDOALREADYTAKEN | The pseudo writed is already taken |
+| 203 | ERR_ALREADYINPAUSE | The robot is already in "paused" state |
+| 204 | ERR_PSEUDONOTEXISTS | The pseudo written doesn't correspond to a client |
+| 205 | ERR_ALREADYACTIVE | The robot is already in "active" state |
+| 206 | ERR_NODATAEXISTS | The robot has not done anything: the data can't exist |
+| 207 | ERR_EMPTYMESSAGE | The message is empty |
+| 208 | ERR_OTHERNOTCONNECTED | The other client is not connected |
+| 209 | ERR_INVALIDCASE | The case selected is invalid(Out of map or occupied ) |
+| 210 | ERR_TOOMANYCLIENTS | Too many clients connected to the server, retry later |
+| 211 | ERR_INVALIDPSEUDO | Pseudo too long or too short |
+| 212 | ERR_INSTATEPAUSED | The robot is in state "Paused" |
+| 213 | ERR_BADARGUMENT | Argument invalid |
+| 214 | ERR_ROBOTNOTSET | Client connected but don’t have set his robot |
+| 215 | ERR_ROBOTALREADYSET | Robot already in the map |
+| 297 | ERR_NOTENOUGHARGS | The request has not enough args |
+| 298 | ERR_MALFORMEDREQUEST | Request could not be recognized |
+| 299 | ERR_INTERNALERRO | An internal error occurred |
