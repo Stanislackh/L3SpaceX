@@ -1,4 +1,4 @@
-import socket
+import socket, random
 from threading import Thread
 
 
@@ -17,9 +17,17 @@ class ListenClient(Thread):
     def CreerCarte(self):
         for i in range(1, 11):
             for j in range(1, 10):
-                self.carte.append(0)
+                ress = random.randint(1, 100)
+                if ress >= 90:
+                    self.carte.append(1)
+                else:
+                    self.carte.append(0)
         for k in range(1, 11):
-            self.carte.append(0)
+            ress = random.randint(1, 100)
+            if ress >= 90:
+                self.carte.append(1)
+            else:
+                self.carte.append(0)
 
     def DepotJoueur(self, x, y, name):
         x = x
@@ -33,27 +41,27 @@ class ListenClient(Thread):
         self.carte[cour + cour2] = name
 
     def ConvertMap2Player(self):
-        map2Player = ""
+        self.map2Player = ""
 
         compt = 1
 
         for i in self.carte:
             if compt % 10 != 0:
-                if i == 0:
-                    map2Player += "0,"
+                if i == 0 or i == 1:
+                    self.map2Player += "0,"
                 else:
-                    map2Player += "1,"
+                    self.map2Player += i + ","
             else:
                 if compt != 100:
-                    if i == 0:
-                        map2Player += "0:"
+                    if i == 0 or i == 1:
+                        self.map2Player += "0:"
                     else:
-                        map2Player += "1:"
+                        self.map2Player += i + ":"
                 else:
-                    if i == 0:
-                        map2Player += "0"
+                    if i == 0 or i == 1:
+                        self.map2Player += "0"
                     else:
-                        map2Player += "1"
+                        self.map2Player += i
             compt += 1
 
     def run(self):
@@ -105,6 +113,7 @@ class ListenClient(Thread):
                         else:
                             reponse = "297"
 
+                    # a tester
                     elif com[0] == "MOVE":
 
                         """réponse a la commande MOVE"""
@@ -112,19 +121,27 @@ class ListenClient(Thread):
                         if com[1] and com[2]:
                             if not adresse_client in self.listJoueur:
                                 reponse = "201"
-                            elif self.listJoueur[adresse_client] in self.carte:
-                                reponse = "215"
+                            elif self.listJoueur[adresse_client] not in self.carte:
+                                reponse = "214"
                             elif int(com[1]) < 1 or int(com[1]) > 10 or int(com[2]) < 1 or int(com[2]) > 10:
                                 reponse = "209"
                             elif self.carte[int(com[1]) * 10 + int(com[2]) - 1] != 0:
                                 reponse = "214"
                             elif self.etatPlayer[adresse_client] == "pause":
                                 reponse = "212"
-                            #elif case pas a coté:
-                                #reponse = "209"
                             else:
-                                # deplacer le robot
-                                reponse = "105 " + self.map2Player
+                                val = 0
+                                for i in self.carte:
+                                    if i == self.listJoueur[adresse_client]:
+                                        break
+                                    val += 1
+                                if val == 1:
+                                    reponse = "209"
+                                else:
+                                    self.carte[val] == 0
+                                    ListenClient.DepotJoueur(self, int(com[1]), int(com[2]),self.listJoueur[adresse_client])
+                                    ListenClient.ConvertMap2Player(self)
+                                    reponse = "105 " + self.map2Player
 
                         else:
                             reponse = "297"
@@ -158,18 +175,21 @@ class ListenClient(Thread):
                         else:
                             reponse = "297"
 
+                    # a tester
                     elif com[0] == "RECEIVEDATAROBOT":
 
                         """réponse a la commande RECEIVEDATAROBOT"""
 
                         ...
 
+                    # a tester
                     elif com[0] == "ACCEPTREQUESTDATA":
 
                         """réponse a la commande ACCEPTREQUESTDATA"""
 
                         ...
 
+                    # a tester
                     elif com[0] == "PRIVATEMESS":
 
                         """réponse a la commande PRIVATEMESS"""
@@ -200,6 +220,7 @@ class ListenClient(Thread):
                             self.etatPlayer[adresse_client] = "play"
                             reponse = "100"
 
+                    # a tester
                     elif com[0] == "QUIT":
 
                         """réponse a la commande QUIT"""
@@ -210,7 +231,7 @@ class ListenClient(Thread):
                             del self.listRessource[self.listJoueur.get(adresse_client)]
                             del self.listJoueur[adresse_client]
                             del self.etatPlayer[adresse_client]
-                            self.clientSo.close()
+                            reponse = "100"
                             # envoie a tous qu'un joueur s'est déconecter
 
                     else:
