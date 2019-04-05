@@ -1,6 +1,9 @@
 """ Création d'un client pour le projet 'SpaceX' qui doit implémenter la RFC établie et ce client doit pouvoir
 communiquer avec les serveurs de Brian, Guillaume et Vincent."""
 
+# Created by Slackh
+# Github : https://github.com/Stanislackh
+
 from socket import *
 from threading import Thread
 import sys
@@ -201,7 +204,5 @@ while True:  # Ecoute le serveur
     threadReceiving.join()  # Termine le thread
     client.close()  # Ferme la connexion avec le serveur
     break
-
-
 
 print("Vous avez quitté SpaceX à bientôt ! :)")
