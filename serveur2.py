@@ -1,10 +1,12 @@
-import socket, random, sys
+import socket, random
 from threading import Thread
 
 listJoueur = {}
 listRessource = {}
 etatPlayer = {}
 carte = []
+pourRepondre = {}
+memRep = {}
 
 
 def CreerCarte():
@@ -95,6 +97,7 @@ class ListenClient(Thread):
                                 listJoueur[adresse_client] = com[1]
                                 listRessource[com[1]] = 0
                                 etatPlayer[adresse_client] = "play"
+                                pourRepondre[adresse_client] = self.clientSo
                                 ListenClient.ConvertMap2Player(self)
                                 reponse = "103 " + self.map2Player
                         else:
@@ -129,7 +132,7 @@ class ListenClient(Thread):
                         reponse = reponse.encode()
                         self.clientSo.send(reponse)
 
-                    # a tester
+                    # a tester / finir (regarder si il se déplace d'une case)
                     elif com[0] == "MOVE":
 
                         """réponse a la commande MOVE"""
@@ -193,8 +196,10 @@ class ListenClient(Thread):
                                 reponse = "202"
                             else:
                                 val = listRessource.pop(listJoueur[adresse_client])
+                                val2 = pourRepondre.pop(adresse_client)
                                 listJoueur[adresse_client] = com[1]
                                 listRessource[com[1]] = val
+                                pourRepondre[adresse_client] = val2
                                 reponse = "100"
                         else:
                             reponse = "297"
@@ -207,27 +212,75 @@ class ListenClient(Thread):
 
                         """réponse a la commande RECEIVEDATAROBOT"""
 
-                        ...
+                        if len(com) == 2:
+                            if com[1] in listJoueur.values():
+                                for nono in listJoueur:
+                                    if listJoueur[nono] == com[1]:
+                                        reponse = "104" + self.ip + self.port
+                                        reponse = reponse.encode()
+                                        pourRepondre[nono].send(reponse)
+                                        memRep[com[1]] = self.clientSo
+                                    reponse = "100"
+                            elif com[1] not in listJoueur.values():
+                                reponse = "204"
+                            elif not adresse_client in listJoueur:
+                                reponse = "201"
+                            elif com[1] not in carte:
+                                reponse = "206"
+                            else:
+                                reponse = "208"
+                        else:
+                            reponse = "297"
 
-                    # a tester
-                    elif com[0] == "ACCEPTREQUESTDATA":
+                        reponse = reponse.encode()
+                        self.clientSo.send(reponse)
 
-                        """réponse a la commande ACCEPTREQUESTDATA"""
-
-                        ...
+                    # # a tester
+                    # elif com[0] == "ACCEPTREQUESTDATA":
+                    #
+                    #     """réponse a la commande ACCEPTREQUESTDATA"""
+                    #
+                    #     if len(com) == 2:
+                    #         if listJoueur[adresse_client] in memRep:
+                    #             for nono in listJoueur:
+                    #                 if listJoueur[nono] == com[1]:
+                    #                     reponse = "104" + self.ip + self.port
+                    #                     reponse = reponse.encode()
+                    #                     pourRepondre[nono].send(reponse)
+                    #                 reponse = "100"
+                    #         elif com[1] not in listJoueur.values():
+                    #             reponse = "204"
+                    #         elif not adresse_client in listJoueur:
+                    #             reponse = "201"
+                    #         elif com[1] not in carte:
+                    #             reponse = "206"
+                    #         else:
+                    #             reponse = "208"
+                    #     else:
+                    #         reponse = "297"
+                    #
+                    #     reponse = reponse.encode()
+                    #     self.clientSo.send(reponse)
 
                     # a tester
                     elif com[0] == "PRIVATEMESS":
 
                         """réponse a la commande PRIVATEMESS"""
 
-                        if len(com) == 3:
+                        if len(com) >= 3:
                             if com[1] in listJoueur.values():
-                                reponse = com[2]
+                                i = 2
+                                rep = ""
+                                while len(com) > i:
+                                    rep += com[i] + " "
+                                    i += 1
+                                rep = rep[:-1]
+                                reponse = "102" + rep
                                 for nono in listJoueur:
                                     if listJoueur[nono] == com[1]:
                                         reponse = reponse.encode()
-                                        nono.send(reponse)
+                                        print(reponse)
+                                        pourRepondre[nono].send(reponse)
                                 reponse = "100"
                             elif com[1] not in listJoueur.values():
                                 reponse = "204"
@@ -274,7 +327,7 @@ class ListenClient(Thread):
                         reponse = reponse.encode()
                         self.clientSo.send(reponse)
 
-                    # a tester
+                    # a tester (envoie de message a d'autre client)
                     elif com[0] == "QUIT":
 
                         """réponse a la commande QUIT"""
@@ -290,17 +343,19 @@ class ListenClient(Thread):
                             reponse = listJoueur[adresse_client] + "s'est déconecter"
                             reponse = reponse.encode()
                             val = 0
-                            for i in carte:
-                                if i == listJoueur[adresse_client]:
-                                    break
-                                val += 1
-                            carte[val] = 0
+                            if listJoueur[adresse_client] in carte:
+                                for i in carte:
+                                    print(i)
+                                    if i == listJoueur[adresse_client]:
+                                        break
+                                    val += 1
+                                carte[val] = 0
                             del listRessource[listJoueur.get(adresse_client)]
                             del listJoueur[adresse_client]
                             del etatPlayer[adresse_client]
+                            del pourRepondre[adresse_client]
                             for nono in listJoueur:
-                                nono.send(reponse)
-                                pass
+                                pourRepondre[nono].send(reponse)
                             break
                     else:
 
