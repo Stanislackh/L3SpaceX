@@ -1,12 +1,32 @@
 import socket, random, sys
 from threading import Thread
 
+listJoueur = {}
+listRessource = {}
+etatPlayer = {}
+carte = []
+
+
+def CreerCarte():
+    for i in range(1, 11):
+        for j in range(1, 10):
+            ress = random.randint(1, 100)
+            if ress >= 90:
+                carte.append(1)
+            else:
+                carte.append(0)
+    for k in range(1, 11):
+        ress = random.randint(1, 100)
+        if ress >= 90:
+            carte.append(1)
+        else:
+            carte.append(0)
+
+
+CreerCarte()
+
 
 class ListenClient(Thread):
-    listJoueur = {}
-    listRessource = {}
-    etatPlayer = {}
-    carte = []
 
     def __init__(self, ip, port, clientSo):
         Thread.__init__(self)
@@ -14,21 +34,6 @@ class ListenClient(Thread):
         self.port = port
         self.clientSo = clientSo
         self.map2Player = ""
-
-    def CreerCarte(self):
-        for i in range(1, 11):
-            for j in range(1, 10):
-                ress = random.randint(1, 100)
-                if ress >= 90:
-                    ListenClient.carte.append(1)
-                else:
-                    ListenClient.carte.append(0)
-        for k in range(1, 11):
-            ress = random.randint(1, 100)
-            if ress >= 90:
-                ListenClient.carte.append(1)
-            else:
-                ListenClient.carte.append(0)
 
     def DepotJoueur(self, x, y, name):
         x = x
@@ -39,16 +44,16 @@ class ListenClient(Thread):
             cour += 1
         while cour2 < y - 1:
             cour2 += 1
-        if ListenClient.carte[cour + cour2] == 1:
-            ListenClient.listRessource[name] += 1
-        ListenClient.carte[cour + cour2] = name
+        if carte[cour + cour2] == 1:
+            listRessource[name] += 1
+        carte[cour + cour2] = name
 
     def ConvertMap2Player(self):
         self.map2Player = ""
 
         compt = 1
 
-        for i in ListenClient.carte:
+        for i in carte:
             if compt % 10 != 0:
                 if i == 0 or i == 1:
                     self.map2Player += "0,"
@@ -82,14 +87,14 @@ class ListenClient(Thread):
                         if len(com) == 2:
                             if len(com[1]) < 3 or len(com[1]) > 10:
                                 reponse = "211"
-                            elif adresse_client in ListenClient.listJoueur:
+                            elif adresse_client in listJoueur:
                                 reponse = "200"
-                            elif com[1] in ListenClient.listJoueur.values():
+                            elif com[1] in listJoueur.values():
                                 reponse = "202"
                             else:
-                                ListenClient.listJoueur[adresse_client] = com[1]
-                                ListenClient.listRessource[com[1]] = 0
-                                ListenClient.etatPlayer[adresse_client] = "play"
+                                listJoueur[adresse_client] = com[1]
+                                listRessource[com[1]] = 0
+                                etatPlayer[adresse_client] = "play"
                                 ListenClient.ConvertMap2Player(self)
                                 reponse = "103 " + self.map2Player
                         else:
@@ -103,18 +108,18 @@ class ListenClient(Thread):
                         """réponse a la commande SETROBOT"""
 
                         if len(com) == 3:
-                            if not adresse_client in ListenClient.listJoueur:
+                            if not adresse_client in listJoueur:
                                 reponse = "201"
-                            elif ListenClient.listJoueur[adresse_client] in ListenClient.carte:
+                            elif listJoueur[adresse_client] in carte:
                                 reponse = "215"
                             elif int(com[1]) < 1 or int(com[1]) > 10 or int(com[2]) < 1 or int(com[2]) > 10:
                                 reponse = "209"
-                            elif ListenClient.carte[(int(com[1]) - 1) * 10 + int(com[2]) - 1] != 0 and \
-                                    ListenClient.carte[(int(com[1]) - 1) * 10 + int(com[2]) - 1] != 1:
+                            elif carte[(int(com[1]) - 1) * 10 + int(com[2]) - 1] != 0 and \
+                                    carte[(int(com[1]) - 1) * 10 + int(com[2]) - 1] != 1:
                                 reponse = "214"
                             else:
                                 ListenClient.DepotJoueur(self, int(com[1]), int(com[2]),
-                                                         ListenClient.listJoueur[adresse_client])
+                                                         listJoueur[adresse_client])
                                 ListenClient.ConvertMap2Player(self)
                                 reponse = "100 " + self.map2Player
 
@@ -130,29 +135,29 @@ class ListenClient(Thread):
                         """réponse a la commande MOVE"""
 
                         if len(com) == 3:
-                            if not adresse_client in ListenClient.listJoueur:
+                            if not adresse_client in listJoueur:
                                 reponse = "201"
-                            elif ListenClient.listJoueur[adresse_client] not in ListenClient.carte:
+                            elif listJoueur[adresse_client] not in carte:
                                 reponse = "214"
                             elif int(com[1]) < 1 or int(com[1]) > 10 or int(com[2]) < 1 or int(com[2]) > 10:
                                 reponse = "209"
-                            elif ListenClient.carte[(int(com[1]) - 1) * 10 + int(com[2]) - 1] != 0 and \
-                                    ListenClient.carte[(int(com[1]) - 1) * 10 + int(com[2]) - 1] != 1:
+                            elif carte[(int(com[1]) - 1) * 10 + int(com[2]) - 1] != 0 and \
+                                    carte[(int(com[1]) - 1) * 10 + int(com[2]) - 1] != 1:
                                 reponse = "214"
-                            elif ListenClient.etatPlayer[adresse_client] == "pause":
+                            elif etatPlayer[adresse_client] == "pause":
                                 reponse = "212"
                             else:
                                 val = 0
-                                for i in ListenClient.carte:
-                                    if i == ListenClient.listJoueur[adresse_client]:
+                                for i in carte:
+                                    if i == listJoueur[adresse_client]:
                                         break
                                     val += 1
-                                if val == ListenClient.listJoueur[adresse_client]:
+                                if val == listJoueur[adresse_client]:
                                     reponse = "209"
                                 else:
-                                    ListenClient.carte[val] = 0
+                                    carte[val] = 0
                                     ListenClient.DepotJoueur(self, int(com[1]), int(com[2]),
-                                                             ListenClient.listJoueur[adresse_client])
+                                                             listJoueur[adresse_client])
                                     ListenClient.ConvertMap2Player(self)
                                     reponse = "105 " + self.map2Player
 
@@ -166,11 +171,11 @@ class ListenClient(Thread):
 
                         """réponse a la commande GETALL"""
 
-                        if not adresse_client in ListenClient.listJoueur:
+                        if not adresse_client in listJoueur:
                             reponse = "201"
                         else:
                             reponse = "101 "
-                            for cle, valeur in ListenClient.listRessource.items():
+                            for cle, valeur in listRessource.items():
                                 reponse += cle + ":" + str(valeur) + ","
                                 reponse = reponse[:-1]
 
@@ -184,12 +189,12 @@ class ListenClient(Thread):
                         if len(com) == 2:
                             if len(com[1]) < 3 or len(com[1]) > 10:
                                 reponse = "211"
-                            elif com[1] in ListenClient.listJoueur.values():
+                            elif com[1] in listJoueur.values():
                                 reponse = "202"
                             else:
-                                val = ListenClient.listRessource.pop(ListenClient.listJoueur[adresse_client])
-                                ListenClient.listJoueur[adresse_client] = com[1]
-                                ListenClient.listRessource[com[1]] = val
+                                val = listRessource.pop(listJoueur[adresse_client])
+                                listJoueur[adresse_client] = com[1]
+                                listRessource[com[1]] = val
                                 reponse = "100"
                         else:
                             reponse = "297"
@@ -217,18 +222,18 @@ class ListenClient(Thread):
                         """réponse a la commande PRIVATEMESS"""
 
                         if len(com) == 3:
-                            if com[1] in ListenClient.listJoueur.values():
+                            if com[1] in listJoueur.values():
                                 reponse = com[2]
-                                for nono in ListenClient.listJoueur:
-                                    if ListenClient.listJoueur[nono] == com[1]:
+                                for nono in listJoueur:
+                                    if listJoueur[nono] == com[1]:
                                         reponse = reponse.encode()
-                                        # nono.send(reponse)
+                                        nono.send(reponse)
                                 reponse = "100"
-                            elif com[1] not in ListenClient.listJoueur.values():
+                            elif com[1] not in listJoueur.values():
                                 reponse = "204"
                             elif com[2] == "":
                                 reponse = "207"
-                            elif not adresse_client in ListenClient.listJoueur:
+                            elif not adresse_client in listJoueur:
                                 reponse = "201"
                             else:
                                 reponse = "208"
@@ -243,12 +248,12 @@ class ListenClient(Thread):
 
                         """réponse a la commande PAUSE"""
 
-                        if self.etatPlayer[adresse_client] == "pause":
+                        if etatPlayer[adresse_client] == "pause":
                             reponse = "212"
-                        elif self.listJoueur[adresse_client] not in self.carte:
+                        elif listJoueur[adresse_client] not in carte:
                             reponse = "214"
                         else:
-                            self.etatPlayer[adresse_client] = "pause"
+                            etatPlayer[adresse_client] = "pause"
                             reponse = "100"
 
                         reponse = reponse.encode()
@@ -258,12 +263,12 @@ class ListenClient(Thread):
 
                         """réponse a la commande ENDPAUSE"""
 
-                        if self.etatPlayer[adresse_client] == "play":
+                        if etatPlayer[adresse_client] == "play":
                             reponse = "205"
-                        elif self.listJoueur[adresse_client] not in self.carte:
+                        elif listJoueur[adresse_client] not in carte:
                             reponse = "214"
                         else:
-                            self.etatPlayer[adresse_client] = "play"
+                            etatPlayer[adresse_client] = "play"
                             reponse = "100"
 
                         reponse = reponse.encode()
@@ -274,7 +279,7 @@ class ListenClient(Thread):
 
                         """réponse a la commande QUIT"""
 
-                        if adresse_client not in ListenClient.listJoueur:
+                        if adresse_client not in listJoueur:
                             reponse = "201"
                             reponse = reponse.encode()
                             self.clientSo.send(reponse)
@@ -282,13 +287,19 @@ class ListenClient(Thread):
                             reponse = "100"
                             reponse = reponse.encode()
                             self.clientSo.send(reponse)
-                            reponse = ListenClient.listJoueur[adresse_client] + "s'est déconecter"
+                            reponse = listJoueur[adresse_client] + "s'est déconecter"
                             reponse = reponse.encode()
-                            del ListenClient.listRessource[ListenClient.listJoueur.get(adresse_client)]
-                            del ListenClient.listJoueur[adresse_client]
-                            del ListenClient.etatPlayer[adresse_client]
-                            for nono in ListenClient.listJoueur:
-                                # nono.send(reponse)
+                            val = 0
+                            for i in carte:
+                                if i == listJoueur[adresse_client]:
+                                    break
+                                val += 1
+                            carte[val] = 0
+                            del listRessource[listJoueur.get(adresse_client)]
+                            del listJoueur[adresse_client]
+                            del etatPlayer[adresse_client]
+                            for nono in listJoueur:
+                                nono.send(reponse)
                                 pass
                             break
                     else:
@@ -318,7 +329,6 @@ while True:
     print("en attente de connexion")
     (connexion, (adresse_client, port)) = sockserveur.accept()
     newThread = ListenClient(adresse_client, port, connexion)
-    newThread.CreerCarte()
     newThread.start()
 
     del newThread
