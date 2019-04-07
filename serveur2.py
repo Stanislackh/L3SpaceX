@@ -7,6 +7,7 @@ etatPlayer = {}
 carte = []
 pourRepondre = {}
 memRep = {}
+coord = {}
 
 
 def CreerCarte():
@@ -125,6 +126,7 @@ class ListenClient(Thread):
                                                          listJoueur[adresse_client])
                                 ListenClient.ConvertMap2Player(self)
                                 reponse = "100 " + self.map2Player
+                                coord[adresse_client] = (int(com[1]), int(com[2]))
 
                         else:
                             reponse = "297"
@@ -138,6 +140,10 @@ class ListenClient(Thread):
                         """réponse a la commande MOVE"""
 
                         if len(com) == 3:
+                            print(coord[adresse_client])
+                            print(coord[adresse_client][0])
+                            print(coord[adresse_client][1])
+                            print(int(com[1]),int(com[1]))
                             if not adresse_client in listJoueur:
                                 reponse = "201"
                             elif listJoueur[adresse_client] not in carte:
@@ -149,20 +155,20 @@ class ListenClient(Thread):
                                 reponse = "214"
                             elif etatPlayer[adresse_client] == "pause":
                                 reponse = "212"
-                            else:
+                            elif coord[adresse_client][0] in [int(com[1])-1, int(com[1]), int(com[1])+1] and coord[adresse_client][1] in [int(com[2])-1, int(com[2]), int(com[2])+1] and coord[adresse_client] != (int(com[1]),int(com[2])):
                                 val = 0
                                 for i in carte:
                                     if i == listJoueur[adresse_client]:
                                         break
                                     val += 1
-                                if val == listJoueur[adresse_client]:
-                                    reponse = "209"
-                                else:
-                                    carte[val] = 0
-                                    ListenClient.DepotJoueur(self, int(com[1]), int(com[2]),
-                                                             listJoueur[adresse_client])
-                                    ListenClient.ConvertMap2Player(self)
-                                    reponse = "105 " + self.map2Player
+                                carte[val] = 0
+                                ListenClient.DepotJoueur(self, int(com[1]), int(com[2]),
+                                                         listJoueur[adresse_client])
+                                ListenClient.ConvertMap2Player(self)
+                                coord[adresse_client] = (int(com[1]), int(com[2]))
+                                reponse = "105 " + self.map2Player
+                            else:
+                                reponse = "209"
 
                         else:
                             reponse = "297"
@@ -219,7 +225,7 @@ class ListenClient(Thread):
                                         reponse = "104" + self.ip + self.port
                                         reponse = reponse.encode()
                                         pourRepondre[nono].send(reponse)
-                                        memRep[com[1]] = self.clientSo
+                                        memRep[com[1]] = listJoueur[adresse_client]
                                     reponse = "100"
                             elif com[1] not in listJoueur.values():
                                 reponse = "204"
@@ -235,32 +241,36 @@ class ListenClient(Thread):
                         reponse = reponse.encode()
                         self.clientSo.send(reponse)
 
-                    # # a tester
-                    # elif com[0] == "ACCEPTREQUESTDATA":
-                    #
-                    #     """réponse a la commande ACCEPTREQUESTDATA"""
-                    #
-                    #     if len(com) == 2:
-                    #         if listJoueur[adresse_client] in memRep:
-                    #             for nono in listJoueur:
-                    #                 if listJoueur[nono] == com[1]:
-                    #                     reponse = "104" + self.ip + self.port
-                    #                     reponse = reponse.encode()
-                    #                     pourRepondre[nono].send(reponse)
-                    #                 reponse = "100"
-                    #         elif com[1] not in listJoueur.values():
-                    #             reponse = "204"
-                    #         elif not adresse_client in listJoueur:
-                    #             reponse = "201"
-                    #         elif com[1] not in carte:
-                    #             reponse = "206"
-                    #         else:
-                    #             reponse = "208"
-                    #     else:
-                    #         reponse = "297"
-                    #
-                    #     reponse = reponse.encode()
-                    #     self.clientSo.send(reponse)
+                    # a tester
+                    elif com[0] == "ACCEPTREQUESTDATA":
+
+                        """réponse a la commande ACCEPTREQUESTDATA"""
+
+                        if len(com) == 2:
+                            if memRep[listJoueur[adresse_client]] not in listJoueur.values():
+                                reponse = "204"
+                            elif not adresse_client in listJoueur:
+                                reponse = "201"
+                            elif memRep[listJoueur[adresse_client]] not in carte:
+                                reponse = "206"
+                            elif memRep[listJoueur[adresse_client]] in listJoueur.values():
+                                for cle, valeur in memRep.items():
+                                    if valeur == listJoueur[adresse_client]:
+                                        for cle2, valeur2 in listJoueur.items():
+                                            if valeur2 == cle:
+                                                reponse = "10" + com[1]
+                                                reponse = reponse.encode()
+                                                pourRepondre[cle2].send(reponse)
+                                                break
+                                del memRep[listJoueur[cle2]]
+                                reponse = "100"
+                            else:
+                                reponse = "208"
+                        else:
+                            reponse = "297"
+
+                        reponse = reponse.encode()
+                        self.clientSo.send(reponse)
 
                     # a tester
                     elif com[0] == "PRIVATEMESS":
@@ -279,7 +289,6 @@ class ListenClient(Thread):
                                 for nono in listJoueur:
                                     if listJoueur[nono] == com[1]:
                                         reponse = reponse.encode()
-                                        print(reponse)
                                         pourRepondre[nono].send(reponse)
                                 reponse = "100"
                             elif com[1] not in listJoueur.values():
@@ -345,7 +354,6 @@ class ListenClient(Thread):
                             val = 0
                             if listJoueur[adresse_client] in carte:
                                 for i in carte:
-                                    print(i)
                                     if i == listJoueur[adresse_client]:
                                         break
                                     val += 1
@@ -354,6 +362,7 @@ class ListenClient(Thread):
                             del listJoueur[adresse_client]
                             del etatPlayer[adresse_client]
                             del pourRepondre[adresse_client]
+                            del coord[adresse_client]
                             for nono in listJoueur:
                                 pourRepondre[nono].send(reponse)
                             break
