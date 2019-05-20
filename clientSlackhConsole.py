@@ -1,8 +1,11 @@
+# -- coding: utf-8 --
 """ Création d'un client pour le projet 'SpaceX' qui doit implémenter la RFC établie et ce client doit pouvoir
 communiquer avec les serveurs de Brian, Guillaume et Vincent."""
 
 # Created by Slackh
 # Github : https://github.com/Stanislackh
+
+"""Version Console"""
 
 from socket import *
 from threading import Thread
@@ -23,7 +26,11 @@ class ThreadCommandes(Thread):  # Permet de lancer le thread qui exécute les co
             print("Tapez HELP pour avoir la liste des commandes !")
             message = input("Entrez votre commande : ")  # Entrée clavier
 
-            if message == "HELP":  # Renvoie la liste des commandes disponibles
+            if message == "":  # Si le message est vide refait une demande d'entrée clavier
+                print("Tapez HELP pour avoir la liste des commandes !")
+                message = input("Entrez votre commande : ")  # Entrée clavier
+
+            elif message == "HELP":  # Renvoie la liste des commandes disponibles
                 afficheCommandes()
 
             else:
@@ -39,16 +46,15 @@ class ThreadClient2Client(Thread):  # Créer le Thread pour la connexion inter C
         self.port = port
 
     def run(self):  # Permet de lancer le thread
-        BUFFER_SIZE = 1024
-        disc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        disc = socket(AF_INET, SOCK_STREAM)
         disc.connect((self.ip, self.port))
         ecu = False
         while ecu == False:
-            data = disc.recv(BUFFER_SIZE)
-            text = data.decode()
-            last = text[-2:]
-            print(text)
-            if last == "\!":
+            data = client.recv(BUFFER_SIZE)
+            texte = data.decode()
+            last = texte[-2:]  # Stocke les 2 derniers caractères du message
+            print(texte)
+            if last == "\!":  # Si les caractères de fin sont \! le datafile du robot a été envoyé
                 ecu = True
 
 
@@ -61,23 +67,25 @@ def afficheLaReponse(reponse):  # Permet de chercher dans les dictionnaires pour
     codeReponse = tableauReponse[0]
 
     if codeReponse in okDico.keys():  # Cherche dans les codes valides du serveur
-        if codeReponse == "100":
-            print("")
-        elif codeReponse == "101":
+        if codeReponse == "100":  # La commande s'est bien éxécutée
+            print("Commande éxécutée")
+        elif codeReponse == "101":  # Affiche tous les cleints connectés avec leurs ressources
             pseudoRessources(tableauReponse)
-        elif codeReponse == "102":
+        elif codeReponse == "102":  # Renvoi les données de la stratégie du client
             renvoiDonnee(tableauReponse)
-        elif codeReponse == "103":
+        elif codeReponse == "103":  # Affiche la carte initiale
             afficheCarte(tableauReponse)
-        elif codeReponse == "104":
-            chat(tableauReponse)
-        elif codeReponse == "105":
+        elif codeReponse == "104":  # Demande la stratégie d'un client
+            demandeData(tableauReponse)
+        elif codeReponse == "105":  # Affiche la carte mise à jour
             afficheCarte(tableauReponse)
+        elif codeReponse == "106":
+            messagePrive(tableauReponse)  # Envoi un message privé au client spécifié
         else:
             print("WTF c'est quoi ce code ?")
     else:
         for key, valeur in errorDico.items():  # Cherche dans les codes d'erreur du serveur
-            if codeReponse in key:
+            if codeReponse == key:
                 print(valeur)
 
 
@@ -114,14 +122,30 @@ def afficheCarte(tableauReponse):
 
         if i == ",":  # Remplace les , par des espaces
             map += ""
-    map += ":" + "\n"
+    map += ":" + "\n"  # Rajoute : à la dernière ligne
     print(map)
     return map
 
 
 # Pour le code 104 => Renvoie l'IP et le port pour communiquer avec un autre client
-def chat(adresseIP, ):
+def demandeData(tableauReponse):  # Demande les data du client spécifié
+    print(tableauReponse[1])  # Affiche l' Ip du client TEST
+    print(tableauReponse[2])  # Affiche le port de reception du client TEST
+
+    # Lance le thread pour la communication inter clients
+    threadReceiving2 = ThreadClient2Client(client)
+    threadReceiving2.start()
+    threadReceiving2.join()
+
+
+def accepteData():  # Accepte de partager les data avec le client qui lui a demandé
     pass
+
+
+# Pour le code 106 => l'envoi de message privé
+def messagePrive(tableauReponse):
+    print("Je suis passé" + "/n")
+    print(tableauReponse[1])
 
 
 """ Aide """
@@ -160,11 +184,11 @@ errorDico = {
     "209": "La position demandée est non valide",
     "210": "Trop de client, réessayer plus tard",
     "211": "le pseudo rentré est trop court ou trop long doit être compris entre 3 et 10 caractères",
-    "212": "Le robot est déjà en pause faites ENDPAUSE pour pouvoir lui donner des ordres",
+    "212": "Le robot est en pause faites ENDPAUSE pour pouvoir lui donner des ordres",
     "213": "Argument invalide faites HELP pour voir les arguments",
     "214": "Client connecté mais le robot n'est pas mis en place",
     "215": "Le robot est déjà sur la carte",
-    "297": "Pas assez d'arguments",
+    "297": "Nombre d'aguments invalide",
     "298": "La requête n'est pas reconnue",
     "299": "Erreur Interne"
 }
@@ -176,33 +200,47 @@ okDico = {
     "102": "Renvoie les données tranférées",
     "103": "Connection établie et renvoie la carte",
     "104": "Renvoie l'IP et le port pour communiquer avec un autre client",
-    "105": "Renvoie la carte mise à jour"
+    "105": "Renvoie la carte mise à jour",
+    "106": "Message privé reçu"
 }
 
 """Partie Connexion au serveur"""
 
-if len(sys.argv) != 2:  # Si il y a pas 2 arguments renvoi le message d'erreur
-    print("Usage: {} <port>".format(sys.argv[0]))
-    sys.exit(1)
 
-adresseIP = "localhost"  # Adresse IP du serveur
-portServeur = 3000  # Port d'écoute du serveur
-BUFFER_SIZE = 1024  # Taille du tampon
+def lancementClient():
+    if len(sys.argv) != 2:  # Si il y a pas 2 arguments renvoi le message d'erreur
+        print("Usage: {} <port>".format(sys.argv[0]))
+        sys.exit(1)
 
-client = socket(AF_INET, SOCK_STREAM)  # Création de la socket
-client.connect((adresseIP, portServeur))  # Demande de connexion à l'adresse et port indiqué
-print("Connexion vers " + adresseIP + " établie avec succès")  # Message de connexion réussie
+    """Variables globales"""
 
-# Crée le Thread pour lancer les commandes
-threadReceiving = ThreadCommandes(client)
-threadReceiving.start()
+    global adresseIP
+    global portServeur
+    global client
+    global BUFFER_SIZE
 
-message = ""  # Initialise le message à envoyer au serveur
+    adresseIP = "localhost"  # Adresse IP du serveur
+    portServeur = 3000  # Port d'écoute du serveur
+    BUFFER_SIZE = 1024  # Taille du tampon
 
-while True:  # Ecoute le serveur
+    client = socket(AF_INET, SOCK_STREAM)  # Création de la socket
+    client.connect((adresseIP, portServeur))  # Demande de connexion à l'adresse et port indiqué
+    print("Connexion vers " + adresseIP + " établie avec succès")  # Message de connexion réussie
 
-    threadReceiving.join()  # Termine le thread
-    client.close()  # Ferme la connexion avec le serveur
-    break
+    # Crée le Thread pour lancer les commandes
+    threadReceiving = ThreadCommandes(client)
+    threadReceiving.start()
 
-print("Vous avez quitté SpaceX à bientôt ! :)")
+    message = ""  # Initialise le message à envoyer au serveur
+
+    while True:  # Ecoute le serveur
+
+        threadReceiving.join()  # Termine le thread des commandes
+        client.close()  # Ferme la connexion avec le serveur
+        break
+
+    print("Vous avez quitté SpaceX à bientôt ! :)")
+
+
+if __name__ == '__main__':
+    lancementClient()
